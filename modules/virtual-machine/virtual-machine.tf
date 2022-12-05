@@ -59,10 +59,6 @@ resource "libvirt_cloudinit_disk" "commoninit" {
 # read cloudinit configuration
 data "template_file" "user_data" {
     template = file("${var.cloudinit_path}")
-    # pass variables from terraform into cloud-init
-    vars = {
-      hostname = "${var.vm_name}"
-    }
 }
 
 # define kvm domain

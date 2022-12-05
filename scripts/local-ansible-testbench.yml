@@ -22,14 +22,3 @@ users:
 # Downloads the qemu-guest-agent package
 packages:
   - qemu-guest-agent
-
-runcmd:
-  # lock down ssh access
-  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
-  - sed -i -e '$aAllowUsers local' /etc/ssh/sshd_config
-  - systemctl restart sshd
-
-  # dhcp configuratoin of static ip functionality from https://github.com/dmacvicar/terraform-provider-libvirt/pull/477 never got merged
-  # so, we're using the workaround suggested here https://discuss.hashicorp.com/t/automating-kvm-infrastructure-deployment-with-terraform-libvirt-library/3515/2 
-  - hostnamectl set-hostname ${hostname}
-
