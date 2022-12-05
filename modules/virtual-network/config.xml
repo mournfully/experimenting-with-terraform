@@ -1,0 +1,28 @@
+<network>
+    <!-- change network name -->
+    <name>network_1</name>
+    <!-- delete uuid, libvirt will auto create on startup-->
+    <uuid></uuid>
+    <forward mode='nat'>
+        <nat>
+            <port start='1024' end='65535' />
+        </nat>
+    </forward>
+    <!-- change bridge name -->
+    <bridge name='virbr1' stp='on' delay='0' />
+    <!-- create unique mac address -->
+    <mac address='52:54:00:6c:3c:01' />
+    <!-- change subnet, but keep netmask of /24 -->
+    <ip address='10.0.200.1' netmask='255.255.255.0'>
+        <dhcp>
+            <!-- remember to change subnet to match ip address for valid addresses -->
+            <range start='10.0.200.2' end='10.0.200.254' />
+            <!-- took bridge mac address and increased it by 1 for vm -->
+            <!-- took bridge ip address and matched it to host mac -->
+            <host mac='52:54:00:6c:3c:02' ip='10.0.200.2' />
+            <host mac='52:54:00:6c:3c:03' ip='10.0.200.3' />
+            <host mac='52:54:00:6c:3c:04' ip='10.0.200.4' />
+        </dhcp>
+    </ip>
+    <dns enable='yes' />
+</network>

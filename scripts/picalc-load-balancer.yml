@@ -1,0 +1,48 @@
+#cloud-config
+
+# https://www.digitalocean.com/community/tutorials/how-to-use-cloud-config-for-your-initial-server-setup
+# https://www.digitalocean.com/community/tutorials/an-introduction-to-cloud-config-scripting
+# https://github.com/number5/cloud-init/blob/main/doc/examples/cloud-config.txt
+# https://cloudinit.readthedocs.io/en/latest/topics/debugging.html
+
+# Create a new user
+# Set no password for the new user account
+# Set up SSH access for the new user account
+# Give the new user password-less sudo privileges to make administrative changes
+# Set no password and provide no SSH keys for the root account 
+users:
+  - name: local
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXej5WJD2eRn4zjkacmTysTdUXlW25kIV/svu/zv4Il minuramolligoda.dev@gmail.com
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+
+# Update && uprade packages
+# Install the following packages
+package_update: false
+package_upgrade: false
+packages:
+  - qemu-guest-agent
+  - git
+  - python
+  - wget
+
+runcmd:
+  # Restrict root SSH login
+  # Explicitly permit our new user
+  # Restart ssh to apply changes
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '$aAllowUsers local' /etc/ssh/sshd_config
+  - sudo systemctl restart ssh
+
+  #  Setup and run Load Balancing server for testing
+  # bash - Using valid YAML in cloud-init to run commands that add text to file - Stack Overflow
+  # https://stackoverflow.com/questions/71198668/using-valid-yaml-in-cloud-init-to-run-commands-that-add-text-to-file
+  - cd "/home/local/"
+  - git clone "https://github.com/krebsalad/PiCalcPy.git"
+  - cd "PiCalcPy"
+  - python "install_picalc.py" "lb"
+  - cd "PumpkinLB-2.0.0"
+  - echo "[options]\nbuffer_size=4096\n\n[mappings]\n80=192.168.180.3:8080,192.168.180.4:8080" > lb_config.cf
+  - python "PumpkinLB.py" "/home/local/PiCalcPy/PumpkinLB-2.0.0/lb_config.cf" &
