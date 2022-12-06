@@ -10,7 +10,7 @@ groups:
 
 # Add users to the system. Users are added after groups are added.
 users:
-  - name: local
+  - name: terraform
     shell: /bin/bash
     primary-group: infra
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
