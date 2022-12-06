@@ -1,4 +1,4 @@
-# provision local qemu-kvm vm with terraform
+# terraform.provisioning libvirt based resources 
 
 > NOTE: I wanted to learn how to quickly and automatically deploy vm's on my proxmox host, but at the same time I really didn't want to have to learn terraform while learning proxmox. So, I figured I'd learn the basics of terraform here, and then go take a crack at proxmox-terraform integration later. 
 
@@ -6,7 +6,7 @@ How to use Terraform to create a small-scale Cloud Infrastructure | by Nitesh | 
 https://itnext.io/how-to-use-terraform-to-create-a-small-scale-cloud-infrastructure-abf54fabc9dd#bf8f
 > *I got as far as Chapter "9. Installing Docker and Terraform provider for docker" and stopped right before it. Since, I had learnt all I wanted regarding the basics of terraform provisioning from this guide. Now that I have the basics down and a good grasp of everything cloud-init, cloud-images, and terraform scripting. I think it's time I got to work on my proxmox server w/ ansible & friends...*
 
-Click [here](provision%20local%20qemu-kvm%20vm%20with%20terraform.md#^b9c02a) to jump to the latest log I wrote for this guide
+Click [here](terraform.provisioning%20libvirt%20based%20resources.md#^b9c02a) to jump to the latest log I wrote for this guide
 
 simple way to provision and manage docker containers? : devops
 https://www.reddit.com/r/devops/comments/p1aeyg/simple_way_to_provision_and_manage_docker/
@@ -16,7 +16,7 @@ https://www.reddit.com/r/devops/comments/p1aeyg/simple_way_to_provision_and_mana
 
 
 
-Test support for the appropriate CPU
+- [ ] Test support for the appropriate CPU
 ```shell
 lscpu | grep Virtualization
 	Virtualization:                  VT-x
@@ -28,7 +28,7 @@ cat /sys/module/kvm_intel/parameters/nested
 ```
 
 
-Download Terraform for Linux 64-bit by going to www.terraform.io/ and pressing on AMD64 under LINUX BINARY DOWNLOAD
+- [ ] Download Terraform for Linux 64-bit by going to www.terraform.io/ and pressing on AMD64 under LINUX BINARY DOWNLOAD
 ```shell
 wget https://releases.hashicorp.com/terraform/1.3.2/terraform_1.3.2_linux_amd64.zip -p ~/Downloads/
 cd ~/Downloads 
@@ -39,6 +39,8 @@ terraform -v
 
 ```
 
+> go to https://developer.hashicorp.com/terraform/downloads and look for 'binary download' and under that 'AMD64' and download that
+
 **TANGENT** - setup simple terraform project & run some tests
 ```
 mkdir terraform-testbench && cd terraform-testbench/
@@ -46,14 +48,26 @@ git init && git add . && git commit -m "v0.1"
 terraform init && terraform apply && terraform destroy
 ```
 
-install kvm packages - if you are wondering where `virt-top` equivalanet is, it's called virst and comes bundled with libvirt
+- [ ] install kvm packages - if you are wondering where `virt-top` equivalanet is, it's called virst and comes bundled with libvirt
 ```shell
 # sudo apt -y install qemu-kvm libvirt-bin virt-top libguestfs-tools virtinst bridge-utils
 sudo pacman -Syyu
 sudo pacman -S qemu-base libvirt libguestfs virt-install bridge-utils
+
+---
+
+# https://www.reddit.com/r/voidlinux/comments/ghwvv5/guide_how_to_setup_qemukvm_emulation_on_void_linux/
+# https://docs.voidlinux.org/config/containers-and-vms/libvirt.html
+xi qemu libvirt bridge-utils # assumes dbus is setup already
+
+ln -s /etc/sv/libvirtd /var/service/
+ln -s /etc/sv/virtlockd/ /var/service/
+ln -s /etc/sv/virtlogd/ /var/service/
 ```
 
 **TANGENT** - install `linux` kernel cause `vhost_run` isn't a module on `linux-surface` kernel - rip touchscreen - prior experience with compiling kernel on void should help you **TODO** compile kernel with `vhost_run=m` :C 
+
+> tysm past me for the warning - i had this enabled when i building my kernel a few weeks ago :D
 
 **TODO** oh hey i need help with getting my `mwifiex_pcie` drivers to support the `set_wiphy_netns` command as well!!!
 ```
@@ -83,7 +97,7 @@ sudo modprobe vhost_net
 sudo lsmod | grep vhost
 	vhost_net              36864  0
 	tun                    61440  1 vhost_net
-==	vhost                  57344  1 vhost_net==
+	vhost                  57344  1 vhost_net <--
 	vhost_iotlb            16384  1 vhost
 	tap                    28672  1 vhost_net
 
@@ -139,21 +153,25 @@ mkdir ~/.terraform.d/plugins
 # ==================================================================
 ```
 
-add `$USER` to libvirt and kvm groups. btw `local = $USER`
+- [ ] add `$USER` to libvirt and kvm groups. btw `local = $USER`
 ```shell
 sudo usermod -aG libvirt,kvm local
 su local
 id -nG | grep 'libvirt\|kvm'
 ```
 
-disable QEMU SELinux but leave SELinux for host enabled
+- [ ] disable QEMU SELinux but leave SELinux for host enabled (Search with `/` and change the line ‘security_driver=”selinux”’ to ‘security_driver = “none”’.)
 ```shell
 sudo vim /etc/libvirt/qemu.conf
-	security_driver = "none" ← #security_driver = "selinux" 	
+- #security_driver = "selinux" 	
++ security_driver = "none" 
+
 sudo systemctl restart libvirtd
+
+sudo sv restart libvirtd
 ```
 
-terraform project stuff - bassically just write some configs, make some directories basically, download some repos, and run a few commands
+terraform project stuff - bassically just write some configs, make some directories basically, download some repos, and run a few commands - past work on these configs can be found at [GitHub - mournfully/terraform-experiments: me trying to learn the basics of terraform first before automating vm provisioning on proxmox](https://github.com/mournfully/terraform-experiments) 
 
 ```shell
 # normally autocreated, i'll try making just `/libvirt-images` for now
@@ -176,13 +194,15 @@ cd ~/kvm-testbench/ && touch cloud_init.cfg # CHECK TESTBENCH FOR TEMPLATES
 > the “How AWS Firecracker works” post mentions “virtio-fs, which allows efficient sharing of files and directories between hosts and guest. This way, a directory containing the guests’ file system can be on the host, much like how Docker works.” the kernel docs on virtio-fs 😳 
 > -https://jvns.ca/blog/2021/01/23/firecracker--start-a-vm-in-less-than-a-second/
 
-download cloud-image (fast iso) and make ssh key pair
+- [ ] download debian cloud-image (fast iso) and make ssh key pair
+
+> get it from `wget https://cloud.debian.org/images/cloud/bullseye/latest/debian-11-genericcloud-amd64.qcow2` 
 ```shell
 cd ~/kvm-testbench/downloads
 # wget https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
-wget http://cloud.debian.org/images/cloud/bullseye/20220911-1135/debian-11-generic-amd64-20220911-1135.qcow2
+# wget http://cloud.debian.org/images/cloud/bullseye/20220911-1135/debian-11-generic-amd64-20220911-1135.qcow2
 
-ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/testbench -C ###############.###@gmail.com
+ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/testbench -C minuramolligoda.dev@gmail.com
 # press `enter` twice for no passphrase
 cd ~/.ssh/ && chmod +x testbench.pub && mv testbench testbench.key
 ls -al testbench* # check perms for read/write access
@@ -246,6 +266,7 @@ most of the work to get up to here was writing code, I've only documented some o
 
 # terraform commands 
 terraform init
+# if you get a resource not found, even though you can see it on virsh - try and check if you're using sudo >.<
 sudo terraform apply -auto-approve
 sudo terraform destroy -auto-approve
 
@@ -253,15 +274,15 @@ terraform state list
 sudo terraform apply -target=
 sudo terraform destroy -target=
 
-# main thread
-sudo virsh list --all 
-sudo virsh console 
-
+# example
 sudo virsh net-dhcp-leases default 
 curl 192.168.122.:8080/PiCalc/100
 ssh -i ~/.ssh/testbench.key local@192.168.122.
 
-
+# diagnosing vms
+# see kernel boot log (if run immediatley after vm was made)
+sudo virsh list --all 
+sudo virsh console $id
 
 # virsh - help + list vm
 virsh help | grep network
@@ -271,8 +292,8 @@ sudo virsh list --all
 # pool stack
 sudo virsh pool-list --all
 # if showing same, everything is gucci
-	sudo virsh vol-list testbench-pool
-	sudo ls /libvirt-images/testbench-pool/
+	sudo virsh vol-list $name
+	sudo ls /libvirt-images/$name/
 
 # network stack
 sudo virsh net-list --all
@@ -306,6 +327,10 @@ sudo pacman -S cloud-init cloud_init.cfg
 
 # debugging `cloud_init.cfg` for valid yaml syntax
 cloud-init schema --config-file /data/terraform/kvm-testbench/cloud_init.cfg
+
+# btw there doesn't seem to be a `cloud-init` pakcage in void linux and copying the .cfg to a debian vm and trying to validate it their got me a 'invalid choice: schema' 
+	/usr/bin/cloud-init: error: argument subcommand: invalid choice: 'schema' (choose from 'init', 'modules', 'single', 'query', 'dhclient-hook', 'features', 'analyze', 'devel', 'collect-logs', 'clean', 'status')
+
 ```
 
 ```shell
@@ -322,11 +347,43 @@ cloud-init analyze blame -i /var/log/cloud-init.log
 cloud-init analyze show -i /var/log/cloud-init.log
 
 # read through vm init logs - pretty easy to read actually
+# Instead of /var/log/cloud-init.log consider searcing for keywords like "Failed", "ERROR" "WARNING" or "/var/lib/cloud/instance/scripts/" inside /var/log/cloud-init-output.log - which in most cases, contains very clear error messages.
 sudo vim /var/log/cloud-init-output.log
 ```
 
 Debugging cloud-init — cloud-init 22.3 documentation
 https://cloudinit.readthedocs.io/en/latest/topics/debugging.html
+
+```shell
+sudo vim /var/log/cloud-init-output.log
+/var/lib/cloud/instances/scripts/runcmd: 4: restart: not found
+2022-12-02 17:02:32,072 - cc_scripts_user.py[WARNING]: Failed to run module scripts-user (scripts in /var/lib/cloud/instance/scripts)
+
+# i was really confused by this at first but it immediatley makes sense once you see what's inside /var/lib/cloud/instances/scripts/runcmd
+sudo ./runcmd
+	restart not found
+
+restart ssh
+	-bash: restart: command not found
+
+sudo vim /var/lib/cloud/instances/scripts/runcmd
+	sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+	sed -i -e '$aAllowUsers terraform' /etc/ssh/sshd_config
+	restart ssh
+
+# it's a copy of runcmd: from /home/local/projects/terraform-experiments/cloud_init_test.cfg
+# the error here was that I was trying to restart my ssh daemon with a command that didn't exist, so all i had to do was
+```
+```diff
+vim /home/local/projects/terraform-experiments/cloud_init_test.cfg
+  runcmd:
+    - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+    - sed -i -e '$aAllowUsers terraform' /etc/ssh/sshd_config
+-   - restart ssh
++   - sudo systemctl restart ssh
+
+```
+
 
 ---
 

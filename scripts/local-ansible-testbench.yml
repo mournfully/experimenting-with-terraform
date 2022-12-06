@@ -1,0 +1,24 @@
+#cloud-config
+
+# https://registry.terraform.io/providers/dmacvicar/libvirt/latest/docs/resources/cloudinit
+# https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/cloudinit_config
+# https://github.com/grantorchard/terraform-vsphere-cloudinit-dynamic/blob/master/config.tf
+
+# Add groups to the system
+groups:
+  - infra
+
+# Add users to the system. Users are added after groups are added.
+users:
+  - name: terraform
+    shell: /bin/bash
+    primary-group: infra
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: users, sudo
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXej5WJD2eRn4zjkacmTysTdUXlW25kIV/svu/zv4Il minuramolligoda.dev@gmail.com
+
+# Downloads the qemu-guest-agent package
+packages:
+  - qemu-guest-agent

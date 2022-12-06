@@ -1,1 +1,4 @@
 downloads/*
+.terrafrom*
+.terraform/*
+terraform*
