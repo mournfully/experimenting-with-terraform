@@ -10,14 +10,14 @@ groups:
 
 # Add users to the system. Users are added after groups are added.
 users:
-  - name: terraform
+  - name: root
     shell: /bin/bash
     primary-group: infra
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     groups: users, sudo
     lock_passwd: false
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPXej5WJD2eRn4zjkacmTysTdUXlW25kIV/svu/zv4Il minuramolligoda.dev@gmail.com
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJWH93dpkl748RvhYQOQG6XNbMS0msN3yo0B0wox9sxX minuramolligoda.dev@gmail.com
 
 # Downloads the qemu-guest-agent package
 packages:
